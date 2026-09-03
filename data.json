@@ -1,0 +1,86 @@
+{
+  "skills": [
+    {
+      "key": "age",
+      "number": 24,
+      "text": "Возраст начала занятий на скрипке"
+    },
+    {
+      "key": "concerts",
+      "number": 57,
+      "text": "Концертов отыграл"
+    },
+    {
+      "key": "cities",
+      "number": 27,
+      "text": "Максимальное число городов в туре"
+    },
+    {
+      "key": "years",
+      "number": 7,
+      "text": "Лет на сцене в качестве скрипача"
+    }
+  ],
+  "products": [
+    {
+      "id": "5adff333df-b9c9-4ba7-aa30-23a57777cce",
+      "src": "/assets/img/products/Work1.jpg",
+      "name": "Вино вдохновение",
+      "price": 600
+    },
+    {
+      "id": "5a34f678f2f-b9c9-4ba7-aa30-234567e3webce",
+      "src": "/assets/img/products/Work2.jpg",
+      "name": "Вино вдохновение",
+      "price": 600
+    },
+    {
+      "id": "5adffghj-b9c9-4ba7-aa30-23ahjjkhbce",
+      "src": "/assets/img/products/Work4.jpg",
+      "name": "Вино вдохновение",
+      "price": 600
+    },
+    {
+      "id": "5adxc-b9c9-4ba7-aa30xcb5sdf6ebce",
+      "src": "/assets/img/products/Work5.jpg",
+      "name": "Вино вдохновение",
+      "price": 600
+    },
+    {
+      "id": "5adfghf-b9c9-4ba7-aa30-23a5swrtyce",
+      "src": "/assets/img/products/Work6.jpg",
+      "name": "Вино вдохновение",
+      "price": 600
+    },
+    {
+      "id": "5adscvb2f-b9c9-4ba7-aa30-23ambnkebce",
+      "src": "/assets/img/products/Work7.jpg",
+      "name": "Печатная машинка",
+      "price": 10600
+    },
+    {
+      "id": "5awer2f-b9c9-4ba7-aa30-23auf6ebce",
+      "src": "/assets/img/products/Work8.jpg",
+      "name": "Вино вдохновение",
+      "price": 600
+    },
+    {
+      "id": "5adfff2f-b9c9-4ba7-aa30-23a5sdf6ebce",
+      "src": "/assets/img/products/Work9.jpg",
+      "name": "Вино вдохновение",
+      "price": 600
+    },
+    {
+      "id": "b01940f5-8528-417a-93b7-c4962c4892f5",
+      "src": "/assets/img/products/1786094820351.png",
+      "name": "grey-headphones ",
+      "price": 5600
+    },
+    {
+      "id": "4130100d-3315-4649-a40c-cf59d124397f",
+      "src": "/assets/img/products/1786102372273.png",
+      "name": "red headphones",
+      "price": 6600
+    }
+  ]
+}

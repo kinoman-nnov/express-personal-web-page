@@ -1,0 +1,99 @@
+extends ../_template-admin
+
+block content
+  .wrapper
+    header.admin-header
+      .container.admin-header__container
+        a(href="/").admin-header__link Вернуться на сайт
+        .admin-header__title Административная панель
+        form(action='/admin/logout' method='POST')
+          button(type='submit').button.form-logout__button Выход
+    section.admin-content
+      .container.admin-content__container
+        .form-container
+
+          - const currentAge = skillFormData ? skillFormData.age : age.number
+          - const currentConcerts = skillFormData ? skillFormData.concerts : concerts.number
+          - const currentCities = skillFormData ? skillFormData.cities : cities.number
+          - const currentYears = skillFormData ? skillFormData.years : years.number
+          form.form-skill(action='/admin/skills' method="POST").section-form
+            .form-title Счетчики
+            if (msgskill)
+              .status.status-success= msgskill
+            if (msgskillError)
+              .status.status-danger= msgskillError
+            label.form-skill__input-line 
+              span.form-skill__input-title Возраст
+              input(name="age" type="number" value=currentAge||'').form-skill__input
+            label.form-skill__input-line 
+              span.form-skill__input-title Концертов
+              input(name="concerts" type="number" value=currentConcerts||'').form-skill__input
+            label.form-skill__input-line 
+              span.form-skill__input-title Число городов
+              input(name="cities" type="number" value=currentCities||'').form-skill__input
+            label.form-skill__input-line 
+              span.form-skill__input-title Лет на сцене
+              input(name="years" type="number" value=currentYears||'').form-skill__input
+            .form__btns.form-skill__input-line
+              button(type="submit").button Сохранить
+
+          - const uploadAction = editProduct ? `/admin/products/${editProduct.id}` : '/admin/products/add'
+          - const productTitle = editProduct ? 'Редактировать товар' : 'Добавить товар'
+          - const msgSuccess = editProduct ? msgedit : msgupload
+          - const msgError = editProduct ? msgeditError : msguploadError
+          - const currentName = productFormData ? productFormData.name : ''
+          - const currentPrice = productFormData ? productFormData.price : ''
+          - const productName = editProduct ? editProduct.name : currentName
+          - const productPrice = editProduct ? editProduct.price : currentPrice
+          - const productPhoto = editProduct ? editProduct.src : ''
+          - const previewClass = editProduct ? 'show' : ''
+          - const productBtn = editProduct ? 'Сохранить' : 'Добавить'
+          form.form-upload(
+            action=uploadAction
+            method="POST"
+            enctype="multipart/form-data"
+          ).section-form
+            .form-title=productTitle
+            .preview-container
+              img#preview(src=productPhoto class=previewClass)
+            if (msgSuccess)
+              .status.status-success= msgSuccess
+            if (msgError)
+              .status.status-danger= msgError
+            .form-upload__input-line
+              .form-upload__wraper
+                label.form-upload__label
+                  input(
+                    name="photo"
+                    type="file"
+                    required=!editProduct
+                    data-no-validate=!!editProduct
+                    accept="image/*"
+                  ).form-upload__input-file
+                  span.form-upload__input-file-title Загрузить фото
+            .form-upload__input-line
+              input(name="name" type="text" value=productName placeholder="Название").form-upload__input
+            .form-upload__input-line
+              input(name="price" type="text" value=productPrice placeholder="Цена").form-upload__input
+            .form-upload__input-line.form-upload__input-line--btn
+              button(type="submit").button= productBtn
+              if (editProduct)
+                a(href="/admin").button.cancel-btn Отмена
+
+          .product__container.section-form
+            .product__title.form-title Редактировать товары
+            if (msgdelete)
+              .status.status-success= msgdelete
+            if (msgdeleteError)
+              .status.status-danger= msgdeleteError
+            ul.product__list.product-edit__list
+              each item in products
+                li.product__item.product-edit__item
+                  img(src=`${item.src}`).product__img
+                  .product__hover
+                    .product__description.product__description--edit
+                      .product__name= item.name
+                      .product__price.product__price--edit= `$ ${item.price}`
+                      a(href=`/admin/products/${item.id}/edit`).button.edit-btn Редактировать
+                      form(action=`/admin/products/${item.id}/delete` method='POST').form-delete-product
+                        button(type="submit").button.delete-btn Удалить
