@@ -5,24 +5,8 @@ const multer = require('multer');
 const crypto = require('crypto');
 const createError = require('http-errors');
 
-const { readData, writeData, deleteFile } = require('../services/storage.js')
-
-const UPLOAD_DIR = path.join(process.cwd(), './public/assets/img/products');
-
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, UPLOAD_DIR);
-  },
-  filename(req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const filename = Date.now() + ext;
-    cb(null, filename);
-  }
-});
-
-const upload = multer({ storage });
-
-router.use(upload.single('photo'));
+const { readData, writeData, deleteFile } = require('../services/storage.js');
+const { uploadMiddleware, UPLOAD_DIR } = require('./middlewares/upload.js');
 
 async function getAdminData(editProductId = null) {
   const data = await readData();
@@ -108,9 +92,7 @@ router.post('/skills', async (req, res, next) => {
     в переменной cities - Максимальное число городов в туре
     в переменной years - Лет на сцене в качестве скрипача
   */
-  let renderData = {
-    title: 'Admin page'
-  }
+  let renderData = { title: 'Admin page' };
 
   try {
     const incomingData = req.body;
@@ -187,29 +169,39 @@ router.post('/products/add', async (req, res, next) => {
     в переменной name - Название товара
     в переменной price - Цена товара
   */
-  let renderData = {
-    title: 'Admin page'
+  let renderData = { title: 'Admin page' };
+
+  const { currentSkills, products } = await getAdminData();
+  const { age, concerts, cities, years } = currentSkills;
+
+  renderData = {
+    ...renderData,
+    products,
+    age,
+    concerts,
+    cities,
+    years
   }
 
   try {
-    const { currentSkills, products } = await getAdminData();
-    const { age, concerts, cities, years } = currentSkills;
+    // Оборачиваем коллбэк Multer в Промис, чтобы поймать его в catch
+    await new Promise((resolve, reject) => {
+      uploadMiddleware(req, res, (err) => {
+        // Multer выбросил ошибку, неверный формат или превышен размер
+        if (err) return reject(err);
+        resolve();
+      });
+    });
 
     const incomingData = req.body;
     const newPic = req.file;
 
     renderData = {
       ...renderData,
-      products,
-      age,
-      concerts,
-      cities,
-      years,
       productFormData: incomingData
     }
 
     const validation = validateProduct(req, res);
-
     if (!validation.isValid) {
       // Если при валидации НОВОГО файла произошла ошибка, 
       // multer уже загрузил файл в папку. Его нужно удалить, чтобы не копить мусор.
@@ -220,6 +212,7 @@ router.post('/products/add', async (req, res, next) => {
         await deleteFile(filePath);
       }
 
+      // если поля не прошли валидацию, рендерим кастомную ошибку
       return res.render('pages/admin', {
         ...renderData,
         msguploadError: validation.errMsg
@@ -258,7 +251,24 @@ router.post('/products/add', async (req, res, next) => {
 
     let userErrorMsg = 'Произошла непредвиденная ошибка';
 
-    if (err.code === 'ENOENT') userErrorMsg = 'Ошибка: файл data.json не найден';
+    switch (err.code) {
+      case 'LIMIT_FILE_SIZE':
+        userErrorMsg = 'Ошибка: Файл слишком большой! Максимальный размер — 5 МБ.';
+        break;
+      case 'INVALID_FILE_TYPE':
+        userErrorMsg = 'Ошибка: Недопустимый формат файла! Разрешены только JPEG, PNG, WEBP и GIF.';
+        break;
+      case 'ENOENT':
+        userErrorMsg = 'Ошибка: файл данных data.json не найден на сервере.';
+        break;
+    }
+
+    if (req.body) {
+      renderData.productFormData = {
+        name: req.body.name || '',
+        price: req.body.price || ''
+      };
+    }
 
     res.render('pages/admin', {
       ...renderData,
@@ -269,9 +279,7 @@ router.post('/products/add', async (req, res, next) => {
 
 // форма для редакирования товара из списка по id
 router.get('/products/:id/edit', async (req, res, next) => {
-  let renderData = {
-    title: 'Admin page'
-  }
+  let renderData = { title: 'Admin page' };
 
   try {
     // id не валидирую, так как если он будет пустой, роут не выполнится
@@ -313,9 +321,7 @@ router.get('/products/:id/edit', async (req, res, next) => {
 
 // редактировать товар по id
 router.post('/products/:id', async (req, res, next) => {
-  let renderData = {
-    title: 'Admin page'
-  }
+  let renderData = { title: 'Admin page' };
   let editProduct = null;
 
   try {
@@ -325,13 +331,6 @@ router.post('/products/:id', async (req, res, next) => {
     editProduct = foundProduct;
 
     const { age, concerts, cities, years } = currentSkills;
-
-    const incomingData = req.body;
-    const newPic = req.file;
-    const numericPrice = Number(incomingData.price);
-
-    editProduct.name = incomingData.name;
-    editProduct.price = numericPrice;
 
     renderData = {
       ...renderData,
@@ -343,23 +342,44 @@ router.post('/products/:id', async (req, res, next) => {
       editProduct
     }
 
-    const validation = validateProduct(req, res, true);
+    // Оборачиваем коллбэк Multer в Промис, чтобы поймать его в catch
+    await new Promise((resolve, reject) => {
+      uploadMiddleware(req, res, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
 
+    const incomingData = req.body;
+    const newPic = req.file;
+
+    const validation = validateProduct(req, res, true);
     if (!validation.isValid) {
-      // Если при валидации НОВОГО файла произошла ошибка, 
+      // Если при валидации РЕДАКТИРУЕМОГО файла произошла ошибка, 
       // multer уже загрузил файл в папку. Его нужно удалить, чтобы не копить мусор.
       if (newPic) {
         const newPicName = path.basename(newPic.filename);
         const newPicPath = path.join(UPLOAD_DIR, newPicName);
-
         await deleteFile(newPicPath);
+      }
+      // Формируем временный объект для отображения в случае ошибки в форме
+      const temporaryEditState = {
+        ...editProduct,
+        name: incomingData.name,
+        price: incomingData.price
       }
 
       return res.render('pages/admin', {
         ...renderData,
+        editProduct: temporaryEditState, // передаем админу то, что он ввел
         msgeditError: validation.errMsg
       });
     }
+
+    // Данные валидны, изменяем объект в памяти 
+    const numericPrice = Number(incomingData.price);
+    editProduct.name = incomingData.name;
+    editProduct.price = numericPrice;
 
     if (newPic) {
       if (editProduct.src) {
@@ -371,6 +391,7 @@ router.post('/products/:id', async (req, res, next) => {
 
       editProduct.src = `/assets/img/products/${newPic.filename}`;
     }
+
     await writeData(data);
 
     // обновить данные для рендеринга после успешной записи в БД
@@ -380,7 +401,7 @@ router.post('/products/:id', async (req, res, next) => {
     res.render('pages/admin', {
       ...renderData,
       products: refreshedProducts,
-      editProduct: null,
+      editProduct: null, // сбрасываем режим редактирования в случае успеха
       msgupload: 'Товар успешно отредактирован!'
     });
 
@@ -391,6 +412,7 @@ router.post('/products/:id', async (req, res, next) => {
       try {
         const newPicName = path.basename(req.file.filename);
         await deleteFile(path.join(UPLOAD_DIR, newPicName));
+
       } catch (cleanupErr) {
         console.error('Не удалось удалить временный файл при ошибке:', cleanupErr);
       }
@@ -398,10 +420,31 @@ router.post('/products/:id', async (req, res, next) => {
 
     let userErrorMsg = 'Произошла непредвиденная ошибка';
 
-    if (err.code === 'ENOENT') userErrorMsg = 'Ошибка: файл data.json не найден';
-    else if (err.status === 404) userErrorMsg = err.message; // из getAdminData
+    switch (err.code) {
+      case 'LIMIT_FILE_SIZE':
+        userErrorMsg = 'Ошибка: Файл слишком большой! Максимальный размер — 5 МБ.';
+        break;
+      case 'INVALID_FILE_TYPE':
+        userErrorMsg = 'Ошибка: Недопустимый формат файла! Разрешены только JPEG, PNG, WEBP и GIF.';
+        break;
+      case 'ENOENT':
+        userErrorMsg = 'Ошибка: файл данных data.json не найден на сервере.';
+        break;
+    }
+
+    if (err.status === 404) userErrorMsg = err.message; // из getAdminData
 
     const isEditError = !!editProduct;
+
+    if (!!editProduct) {
+      if (req.body) {
+        renderData.editProduct = {
+          ...editProduct,
+          name: req.body.name || '',
+          price: req.body.price || ''
+        };
+      }
+    }
 
     res.render('pages/admin', {
       ...renderData,
@@ -413,9 +456,7 @@ router.post('/products/:id', async (req, res, next) => {
 });
 
 router.post('/products/:id/delete', async (req, res, next) => {
-  let renderData = {
-    title: 'Admin page'
-  }
+  let renderData = { title: 'Admin page' };
 
   try {
     const productId = req.params.id;
@@ -462,11 +503,11 @@ router.post('/products/:id/delete', async (req, res, next) => {
 
   } catch (err) {
     console.error('[delete POST] Ошибка', err);
-    
+
     let userErrorMsg = 'Произошла непредвиденная ошибка';
 
     if (err.code === 'ENOENT') userErrorMsg = 'Ошибка: файл data.json не найден';
-    else if (err.status === 404) userErrorMsg = err.message;
+    else if (err.status === 404) userErrorMsg = err.message; // из getAdminData
 
     res.render('pages/admin', {
       ...renderData,

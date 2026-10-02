@@ -47,7 +47,32 @@ app.use(session({
     sameSite: 'strict' // Защита от CSRF на уровне куки
   }
 }));
- 
+
+// Защита от CSRF-атак
+app.use((req, res, next) => {
+  // Защищаем только мутирующие методы (POST, PUT, DELETE)
+  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    // Системные заголовки
+    const origin = req.headers.origin; //  заголовок, который браузер обязательно прикрепляет к любым POST-запросам, с какого сайта сделан запрос (например, http://localhost:3000 или https://evil-hacker.com)
+    const host = req.headers.host; // адрес сервера (например, localhost:3000 или my-site.com)
+
+    // Формируем ожидаемый локальный origin (поддерживает http и https) без http
+    const expectedOriginHost = origin ? origin.replace(/^https?:\/\//, '') : null;
+
+    // Проверка по современному стандарту Sec-Fetch-Site
+    const fetchSite = req.headers['sec-fetch-site'];
+    if (fetchSite && !['same-origin', 'same-site', 'none'].includes(fetchSite)) {
+      return res.status(403).send('CSRF Protection: Invalid Request Origin (Sec-Fetch-Site)');
+    }
+
+    // Дополнительная проверка заголовка Origin (если он присутствует)
+    if (expectedOriginHost && expectedOriginHost !== host) {
+      return res.status(403).send('CSRF Protection: Request Origin Mismatch');
+    }
+  }
+  next();
+});
+
 app.use('/', mainRouter);
 
 // catch 404 and forward to error handler

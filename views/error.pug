@@ -11,5 +11,8 @@ html
 
   body
     h1 #{message} 
-    h2 #{error.status}
-    pre #{error.stack}
+    if error && error.status
+      h2 Статус: #{error.status}
+
+    if error && error.stack
+      pre(style="background: #f4f4f4; padding: 15px; overflow-x: auto;") #{error.stack}

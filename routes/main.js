@@ -22,8 +22,8 @@ router.post('/api/contact', async (req, res, next) => {
   const { name, email, message } = req.body;
 
   if (!name || !email || !message) {
-    res.status(400).json({
-      msg: `Заполните все поля!: ${err.message}`,
+    return res.status(400).json({
+      msg: 'Заполните все поля формы!',
       status: 'Error'
     });
   }
@@ -32,10 +32,11 @@ router.post('/api/contact', async (req, res, next) => {
   const { to: emailTo } = config.email;
 
   const mailOptions = {
-    from: `"${name}" <${email}>`,
+    from: `"${name}" <${user}>`,
+    replyTo: email,
     to: emailTo,
-    subject: "Сообщение с сайта",
-    text: message.trim().slice(0, 500) + `\n Отправлено с: <${email}>`
+    subject: "Сообщение с сайта Express-personal-web-page",
+    text: message.trim().slice(0, 500) + `\n Отправлено от: ${name} <${email}>`
   }
 
   try {

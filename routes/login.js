@@ -3,7 +3,7 @@ const router = express.Router();
 const fsp = require('fs').promises;
 const path = require('path');
 const createError = require('http-errors');
-const { hashPassword, salt } = require('../services/password.js');
+const { hashPassword } = require('../services/password.js');
 
 function isAuth(req, res, next){
   if (req.session && req.session.user) {

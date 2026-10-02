@@ -1,9 +1,7 @@
 // создает Email и пароль для админки с записью в user.json
-
-const fs = require('fs');
 const fsp = require('fs').promises;
 const readline = require('readline');
-const { hashPassword, salt } = require('./services/password.js');
+const { hashPassword, generateSalt  } = require('./services/password.js');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -19,12 +17,13 @@ async function createAdmin() {
     const email = await question('Email: ');
     const password = await question('Password: ');
 
-    const hash = await hashPassword(password, salt);
+    const userSalt = generateSalt();
+    const hash = await hashPassword(password, userSalt);
 
     const admin = {
       id: 1,
       email,
-      salt,
+      salt: userSalt,
       hash
     };
 

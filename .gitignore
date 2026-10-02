@@ -1,7 +1,9 @@
 .env
 .env.local
 .env.*.local
+db.example.json
 user.json
 node_modules/
 dist/
+.ai-audit
 *.log
