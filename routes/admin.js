@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const multer = require('multer');
 const crypto = require('crypto');
 const createError = require('http-errors');
 
@@ -69,8 +68,12 @@ function validateProduct(req, res, isEdit) {
 router.get('/', async (req, res, next) => {
   try {
     const { currentSkills, products } = await getAdminData();
-
     const { age, concerts, cities, years } = currentSkills;
+
+    // Извлекаем всплывающие сообщения из res.locals
+    const msgupload = res.locals.flash.msgupload || null;
+    const msgskill = res.locals.flash.msgskill || null;
+    const msgdelete = res.locals.flash.msgdelete || null;
 
     res.render('pages/admin', {
       title: 'Admin page',
@@ -78,7 +81,10 @@ router.get('/', async (req, res, next) => {
       age,
       concerts,
       cities,
-      years
+      years,
+      msgupload, // Передаем переменные в Pug
+      msgskill,
+      msgdelete
     });
   } catch (err) {
     next(err);
@@ -144,10 +150,8 @@ router.post('/skills', async (req, res, next) => {
       years
     };
 
-    res.render('pages/admin', {
-      ...renderData,
-      msgskill: 'Скиллы успешно обновлены!'
-    });
+    req.flash('msgskill', 'Скиллы успешно обновлены!');
+    return res.redirect('/admin');
 
   } catch (err) {
     console.error('[skills POST] Ошибка', err);
@@ -240,11 +244,8 @@ router.post('/products/add', async (req, res, next) => {
       products: refreshedProducts
     };
 
-    res.render('pages/admin', {
-      ...renderData,
-      productFormData: null,
-      msgupload: 'Товары успешно обновлены!'
-    });
+    req.flash('msgupload', 'Товар успешно добавлен!');
+    return res.redirect('/admin');
 
   } catch (err) {
     console.error('[uploads POST] Ошибка', err);
@@ -397,13 +398,8 @@ router.post('/products/:id', async (req, res, next) => {
     // обновить данные для рендеринга после успешной записи в БД
     const { products: refreshedProducts } = await getAdminData();
 
-    // в случае успеха, рендерим шаблон добавления продукта
-    res.render('pages/admin', {
-      ...renderData,
-      products: refreshedProducts,
-      editProduct: null, // сбрасываем режим редактирования в случае успеха
-      msgupload: 'Товар успешно отредактирован!'
-    });
+    req.flash('msgupload', 'Товар успешно отредактирован!');
+    return res.redirect('/admin')
 
   } catch (err) {
     console.error('[edit POST] Ошибка', err);
@@ -494,12 +490,8 @@ router.post('/products/:id/delete', async (req, res, next) => {
     // обновить данные для рендеринга после успешной записи в БД
     const { products: refreshedProducts } = await getAdminData();
 
-    // в случае успеха, рендерим шаблон добавления продукта
-    res.render('pages/admin', {
-      ...renderData,
-      products: refreshedProducts,
-      msgdelete: 'Товар успешно удален!'
-    });
+    req.flash('msgdelete', 'Товар успешно удален!');
+    return res.redirect('/admin');
 
   } catch (err) {
     console.error('[delete POST] Ошибка', err);
@@ -516,14 +508,23 @@ router.post('/products/:id/delete', async (req, res, next) => {
   }
 });
 
-router.post('/logout', (req, res, next) => {
-  req.session.destroy(err => {
-    if (err) return next(err);
+router.post('/logout', async (req, res, next) => {
+  try {
+    if (!req.session) return res.redirect('/login');
+
+    await new Promise((resolve, reject) => {
+      req.session.destroy((err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
 
     res.clearCookie('connect.sid', { path: '/' });
 
-    res.redirect('/login');
-  });
+    return res.redirect('/login');
+  } catch (err) {
+    return next(err);
+  }
 });
 
 module.exports = router;

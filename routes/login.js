@@ -5,7 +5,7 @@ const path = require('path');
 const createError = require('http-errors');
 const { hashPassword } = require('../services/password.js');
 
-function isAuth(req, res, next){
+function isAuth(req, res, next) {
   if (req.session && req.session.user) {
     return res.redirect('/admin');
   }
@@ -13,7 +13,7 @@ function isAuth(req, res, next){
   return next();
 }
 
-const USER_PATH = path.join(__dirname, '../user.json');
+const USER_PATH = path.join(__dirname, '../database/user.json');
 
 router.get('/', isAuth, (req, res, next) => {
 
@@ -57,7 +57,10 @@ router.post('/', isAuth, async (req, res, next) => {
       email: user.email
     }
 
-    res.redirect('/admin');
+    req.session.save((err) => {
+      if (err) return next(err);
+      res.redirect('/admin');
+    });
 
   } catch (err) {
     next(err);

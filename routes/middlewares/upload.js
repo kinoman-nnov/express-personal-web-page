@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
   fileFilter(req, file, cb) {
@@ -22,9 +22,9 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      const error = new Error();
-      error.code = 'INVALID_FILE_TYPE'; 
-      
+      const error = new Error('Not allowed mimetype');
+      error.code = 'INVALID_FILE_TYPE';
+      error.status = 415;
       cb(error, false);
     }
   }

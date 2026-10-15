@@ -15,7 +15,9 @@ const createError = require('http-errors');
 const logger = require('morgan');
 const cookie = require('cookie-parser');
 
-const mainRouter = require('./routes/');
+const SingleUserFileStore = require('./services/sessionStore.js');
+
+const mainRouter = require('./routes/index.js');
 
 const app = express();
 
@@ -37,6 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookie());
 
 app.use(session({
+  store: new SingleUserFileStore(), // кастомное хранилище сессий
   secret,
   resave: false,  // Не сохранять сессию, если она не изменилась
   saveUninitialized: false,  // Не создавать сессию для каждого запроса
@@ -47,6 +50,21 @@ app.use(session({
     sameSite: 'strict' // Защита от CSRF на уровне куки
   }
 }));
+
+app.use((req, res, next) => {
+  // Создаем функцию для записи flash-сообщений
+  req.flash = (key, value) => {
+    if (!req.session.flash) req.session.flash = {};
+    req.session.flash[key] = value;
+  };
+
+  // Передаем локальные переменные во все шаблоны Pug
+  res.locals.flash = req.session.flash || {};
+  // Очищаем flash в сессии при следующем переходе
+  req.session.flash = {};
+  
+  next();
+});
 
 // Защита от CSRF-атак
 app.use((req, res, next) => {

@@ -27,7 +27,7 @@ async function createAdmin() {
       hash
     };
 
-    await fsp.writeFile('./user.json', JSON.stringify(admin, null, 2));
+    await fsp.writeFile('./database/user.json', JSON.stringify(admin, null, 2));
 
     console.log('\nАдминистратор успешно создан.');
 

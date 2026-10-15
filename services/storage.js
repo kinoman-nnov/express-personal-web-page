@@ -1,8 +1,7 @@
 const fsp = require('fs').promises;
 const path = require('path');
-const createError = require('http-errors');
 
-const BD = './data.json';
+const BD = './database/data.json';
 
 const DATA_PATH = path.join(process.cwd(), BD);
 
