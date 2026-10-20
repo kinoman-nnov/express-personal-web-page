@@ -59,12 +59,6 @@ function validateProduct(req, res, isEdit) {
   return { isValid: true }
 }
 
-// function throwFakeError(errCode) {
-//   const fakeError = new Error('fake ERROR!!!');
-//   fakeError.code = errCode;
-//   throw fakeError;
-// }
-
 router.get('/', async (req, res, next) => {
   try {
     const { currentSkills, products } = await getAdminData();
@@ -137,18 +131,6 @@ router.post('/skills', async (req, res, next) => {
     }
 
     await writeData(data);
-
-    // обновить данные для рендеринга после успешной записи в БД
-    const { currentSkills } = await getAdminData();
-    const { age, concerts, cities, years } = currentSkills;
-
-    renderData = {
-      ...renderData,
-      age,
-      concerts,
-      cities,
-      years
-    };
 
     req.flash('msgskill', 'Скиллы успешно обновлены!');
     return res.redirect('/admin');
@@ -235,14 +217,6 @@ router.post('/products/add', async (req, res, next) => {
     data.products.push(product);
 
     await writeData(data);
-
-    // обновить данные для рендеринга после успешной записи в БД
-    const { products: refreshedProducts } = await getAdminData();
-
-    renderData = {
-      ...renderData,
-      products: refreshedProducts
-    };
 
     req.flash('msgupload', 'Товар успешно добавлен!');
     return res.redirect('/admin');
@@ -395,11 +369,8 @@ router.post('/products/:id', async (req, res, next) => {
 
     await writeData(data);
 
-    // обновить данные для рендеринга после успешной записи в БД
-    const { products: refreshedProducts } = await getAdminData();
-
     req.flash('msgupload', 'Товар успешно отредактирован!');
-    return res.redirect('/admin')
+    return res.redirect('/admin');
 
   } catch (err) {
     console.error('[edit POST] Ошибка', err);
@@ -486,9 +457,6 @@ router.post('/products/:id/delete', async (req, res, next) => {
     products.splice(index, 1); // удалить 1 элемент начиная с index
 
     await writeData(data);
-
-    // обновить данные для рендеринга после успешной записи в БД
-    const { products: refreshedProducts } = await getAdminData();
 
     req.flash('msgdelete', 'Товар успешно удален!');
     return res.redirect('/admin');
