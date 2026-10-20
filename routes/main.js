@@ -6,10 +6,24 @@ const nodemailer = require("nodemailer");
 const config = require("../services/config.js").getConfig();
 const { readData } = require('../services/storage.js');
 
+const { user, clientId, clientSecret, refreshToken } = config.google;
+const { to: emailTo } = config.email;
+
+const transporter = nodemailer.createTransport({
+  service: "gmail", // Shortcut for Gmail's SMTP settings
+  auth: {
+    type: "OAuth2",
+    user,
+    clientId,
+    clientSecret,
+    refreshToken,
+  },
+});
+
 router.get('/', async (req, res, next) => {
   const data = await readData();
   const { skills, products } = data;
-  
+
   res.render('pages/index', {
     title: 'Main page',
     products,
@@ -28,11 +42,20 @@ router.post('/api/contact', async (req, res, next) => {
     });
   }
 
-  const { user, clientId, clientSecret, refreshToken } = config.google;
-  const { to: emailTo } = config.email;
+  // Базовая валидация формата Email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.trim())) {
+    return res.status(400).json({
+      status: 'Error',
+      msg: 'Введите корректный адрес электронной почты!'
+    });
+  }
+
+  // Очищаем имя от возможных инъекций перевода строки
+  const cleanName = name.replace(/[\r\n\(\)\\]/g, '').slice(0, 100);
 
   const mailOptions = {
-    from: `"${name}" <${user}>`,
+    from: `"${cleanName}" <${user}>`,
     replyTo: email,
     to: emailTo,
     subject: "Сообщение с сайта Express-personal-web-page",
@@ -40,19 +63,6 @@ router.post('/api/contact', async (req, res, next) => {
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail", // Shortcut for Gmail's SMTP settings
-      auth: {
-        type: "OAuth2",
-        user,
-        clientId,
-        clientSecret,
-        refreshToken,
-      },
-    });
-
-    await transporter.verify();
-
     await transporter.sendMail(mailOptions);
 
     res.json({
